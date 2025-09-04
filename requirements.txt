@@ -1,0 +1,7 @@
+# requirements.txt
+langgraph
+langchain-google-genai
+pandas
+pdfplumber
+pytest
+google-generativeai
