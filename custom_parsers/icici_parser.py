@@ -4,28 +4,30 @@ import re
 
 def parse(pdf_path: str) -> pd.DataFrame:
     with pdfplumber.open(pdf_path) as pdf:
-        page = pdf.pages[0]
-        text = page.extract_text()
+        first_page = pdf.pages[0]
+        text = first_page.extract_text()
 
-    # Extract data using regular expressions.  Adjust these if needed based on your PDF's formatting.
-    lines = text.splitlines()
-    data = []
-    for line in lines:
-        cleaned_line = line.strip()
-        if not cleaned_line or "Statement Summary" in cleaned_line or "Balance" in cleaned_line or "Page" in cleaned_line:
-            continue  #Skip header, footer and summary lines
+    # Extract data section (adjust regex if needed based on PDF structure)
+    data_section = re.search(r"Date\s*Description\s*Debit Amt\s*Credit Amt\s*Balance.*?(?=\n\n|$)", text, re.DOTALL).group(0)
 
-        match = re.match(r"(\d{2}/\d{2}/\d{4})\s*([^\d]+)\s*(\d+\.?\d*|\s*)\s*(\d+\.?\d*|\s*)\s*(\d+\.?\d*)", cleaned_line)
-        if match:
-            date, description, debit, credit, balance = match.groups()
-            debit = debit.strip() if debit else ''
-            credit = credit.strip() if credit else ''
-            data.append([date, description.strip(), debit, credit, balance])
+    lines = data_section.splitlines()
+    header = [re.sub(r'\s+', ' ', line).strip() for line in lines[:1]][0].split()
+    data = [re.sub(r'\s+', ' ', line).strip().split() for line in lines[1:]]
 
-    df = pd.DataFrame(data, columns=["Date", "Description", "Debit Amt", "Credit Amt", "Balance"])
+    #Handle inconsistent spacing and missing values
+    cleaned_data = []
+    for row in data:
+      if len(row) < 5:
+        row.extend([''] * (5 - len(row)))
+      cleaned_data.append(row)
 
-    # Convert numeric columns to numeric, handling potential errors
-    for col in ["Debit Amt", "Credit Amt", "Balance"]:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+    df = pd.DataFrame(cleaned_data, columns=header)
+
+    #Clean and convert data types
+    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
+    df['Debit Amt'] = df['Debit Amt'].astype(str).str.replace(r'[^\d.]', '', regex=True).replace('', 0).astype(float)
+    df['Credit Amt'] = df['Credit Amt'].astype(str).str.replace(r'[^\d.]', '', regex=True).replace('', 0).astype(float)
+    df['Balance'] = df['Balance'].astype(str).str.replace(r'[^\d.]', '', regex=True).replace('', 0).astype(float)
+
 
     return df

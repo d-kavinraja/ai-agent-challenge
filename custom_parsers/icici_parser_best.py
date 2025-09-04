@@ -3,42 +3,59 @@ import pandas as pd
 import re
 
 def parse(pdf_path: str) -> pd.DataFrame:
+    """
+    Parses an ICICI bank statement PDF and returns a pandas DataFrame.
+    """
+
     with pdfplumber.open(pdf_path) as pdf:
-        # Assuming the table starts on page 1.  Adjust if needed.
+        # Assuming the table is on the first page for simplicity.  Adjust as needed for multi-page statements.
         first_page = pdf.pages[0]
         table = first_page.extract_table()
 
-    # Clean up the extracted table
+    # Clean up the extracted table data
     cleaned_table = []
     for row in table:
         cleaned_row = [cell.strip() if isinstance(cell, str) else cell for cell in row]
         cleaned_table.append(cleaned_row)
 
 
-    #Handle potential inconsistencies in the number of columns
-    max_cols = max(len(row) for row in cleaned_table)
-    for row in cleaned_table:
-        while len(row) < max_cols:
-            row.append('')
+    #Data Cleaning and column identification.  This section is highly dependent on the specific format of your PDF.
+    # You might need to adjust the regex patterns and column indices based on your PDF's structure.
 
 
-    #Identify header row (heuristic based on "Date" column presence)
-    header_index = next((i for i, row in enumerate(cleaned_table) if "Date" in row), None)
-    if header_index is None:
-        raise ValueError("Could not find header row in PDF")
-    header = cleaned_table[header_index]
-    data_rows = cleaned_table[header_index + 1:]
+    header_index = 0 #Find the header row index. This might need adjustment based on your PDF
+    headers = cleaned_table[header_index]
+    data_rows = cleaned_table[header_index+1:]
 
-    #Create DataFrame
-    df = pd.DataFrame(data_rows, columns=header)
+    #Handle potential inconsistencies in header names.
+    header_map = {
+        "Date": "Date",
+        "Description": "Description",
+        "Debit Amt": "Debit Amt",
+        "Credit Amt": "Credit Amt",
+        "Balance": "Balance"
 
-    #Clean numeric columns
-    for col in ['Debit Amt', 'Credit Amt', 'Balance']:
-        df[col] = df[col].astype(str).str.replace(r'[^\d.]', '', regex=True).str.strip()
-        df[col] = pd.to_numeric(df[col], errors='coerce') #Handle non-numeric values gracefully
+    }
+    
+    #Remap headers if needed based on variations
+    headers = [header_map.get(header, header) for header in headers]
+
+
+    # Create a pandas DataFrame
+    df = pd.DataFrame(data_rows, columns=headers)
+
+
+
+    #Clean Numeric Columns
+    numeric_cols = ["Debit Amt", "Credit Amt", "Balance"]
+    for col in numeric_cols:
+        df[col] = df[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
+        df[col] = pd.to_numeric(df[col], errors='coerce')
 
     #Handle empty debit/credit cells
-    df['Debit Amt'] = df['Debit Amt'].fillna(0)
-    df['Credit Amt'] = df['Credit Amt'].fillna(0)
+    df["Debit Amt"].fillna(0, inplace=True)
+    df["Credit Amt"].fillna(0, inplace=True)
+
+
 
     return df
