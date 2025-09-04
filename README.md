@@ -29,7 +29,7 @@ This project implements an autonomous AI agent designed to solve the **Agent-as-
 | **Iterative Refinement** | Improves code quality through feedback-driven iteration loops |
 | **Test-Driven Development** | Validates parser accuracy against expected CSV output |
 | **Extensible Architecture** | Designed for easy adaptation to multiple bank formats |
-| **High Accuracy** | Achieves up to 100% parsing accuracy through systematic refinement |
+| **High Accuracy** | Achieves up to Better% parsing accuracy through systematic refinement |
 | **Simple CLI Interface** | Easy-to-use command line interface for agent execution |
 
 ### Architecture
