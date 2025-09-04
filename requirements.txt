@@ -1,7 +1,14 @@
-# requirements.txt
-langgraph
-langchain-google-genai
-pandas
-pdfplumber
-pytest
-google-generativeai
+# Core
+pandas>=2.0.0
+pdfplumber>=0.11.0
+
+# Google Gemini API
+google-generativeai>=0.3.0
+
+# Utilities
+python-dotenv>=1.0.0
+
+# Development & Testing
+pytest>=7.0.0
+black>=24.0.0
+flake8>=7.0.0
